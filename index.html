@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Escolar: Lógica de Programação</title>
+    <!-- Fonte estilo caligrafia/escolar -->
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Patrick+Hand&family=Short+Stack&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #2b4c3f; /* Fundo estilo lousa/mesa de madeira */
+            font-family: 'Patrick Hand', cursive, sans-serif;
+            font-size: 1.25rem;
+            color: #2c3e50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Container estilo Caderno Escolar */
+        .quiz-container {
+            background: #fffef0; /* Papel levemente amarelado */
+            width: 100%;
+            max-width: 680px;
+            padding: 40px 30px 30px 60px;
+            border-radius: 4px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            position: relative;
+            /* Linhas pautadas azuis */
+            background-image: repeating-linear-gradient(#fffef0 0px, #fffef0 31px, #d0e1f9 32px);
+            line-height: 32px;
+        }
+
+        /* Margem vermelha de caderno */
+        .quiz-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 45px;
+            width: 2px;
+            background-color: #ff8a8a;
+        }
+
+        /* Furos de espiral */
+        .quiz-container::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            bottom: 15px;
+            left: 12px;
+            width: 18px;
+            background-image: radial-gradient(circle, #2b4c3f 40%, transparent 45%);
+            background-size: 18px 32px;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Caveat', cursive;
+            color: #1a365d;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            border-bottom: 2px dashed #1a365d;
+            padding-bottom: 5px;
+            line-height: 1.2;
+        }
+
+        .menu-screen, .quiz-screen, .result-screen {
+            display: none;
+        }
+
+        .active {
+            display: block;
+        }
+
+        /* Botão estilizado com traço feito à mão */
+        .btn {
+            display: block;
+            width: 100%;
+            background: #4a90e2;
+            color: white;
+            border: 2px solid #1c5296;
+            padding: 10px 20px;
+            font-family: 'Short Stack', cursive;
+            font-size: 1.3rem;
+            border-radius: 255px 15px 225px 15px/15px 225px 15px 255px; /* Formato irregular estilizado */
+            cursor: pointer;
+            margin: 15px 0;
+            transition: all 0.2s ease;
+            box-shadow: 2px 3px 0px #1c5296;
+        }
+
+        .btn:hover {
+            background: #357abd;
+            transform: translateY(-2px);
+            box-shadow: 3px 5px 0px #1c5296;
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 1px 1px 0px #1c5296;
+        }
+
+        /* Indicador de progresso */
+        .header-status {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            color: #4a5568;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #cbd5e0;
+        }
+
+        .question-text {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #1a202c;
+            line-height: 1.4;
+        }
+
+        /* Opções de resposta */
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #a0aec0;
+            border-radius: 8px;
+            padding: 8px 15px;
+            text-align: left;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.25rem;
+            color: #2d3748;
+            cursor: pointer;
+            transition: all 0.2s;
+            line-height: 1.3;
+        }
+
+        .option-btn:hover:not([disabled]) {
+            background: #ebf8ff;
+            border-color: #3182ce;
+        }
+
+        .option-btn.correct {
+            background-color: #c6f6d5 !important;
+            border-color: #38a169 !important;
+            color: #22543d !important;
+            font-weight: bold;
+        }
+
+        .option-btn.incorrect {
+            background-color: #fed7d7 !important;
+            border-color: #e53e3e !important;
+            color: #742a2a !important;
+        }
+
+        /* Caixa de feedback (mensagens de acerto/erro) */
+        .feedback-box {
+            margin-top: 15px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+            font-family: 'Caveat', cursive;
+        }
+
+        .feedback-box.correct {
+            display: block;
+            background: #e6fffa;
+            color: #234e52;
+            border: 2px dashed #319795;
+        }
+
+        .feedback-box.incorrect {
+            display: block;
+            background: #fff5f5;
+            color: #9b2c2c;
+            border: 2px dashed #e53e3e;
+        }
+
+        /* Carimbo/Selo de Nota no Boletim Final */
+        .grade-stamp {
+            width: 120px;
+            height: 120px;
+            border: 4px dashed #e53e3e;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 20px auto;
+            color: #e53e3e;
+            transform: rotate(-12deg);
+            font-family: 'Caveat', cursive;
+        }
+
+        .grade-stamp .score-num {
+            font-size: 2.8rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .grade-stamp .score-label {
+            font-size: 1rem;
+            text-transform: uppercase;
+        }
+
+        .result-details {
+            text-align: center;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+        }
+
+        .rule-box {
+            background: rgba(255, 250, 205, 0.7);
+            border: 1px dashed #d69e2e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 1.15rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        
+        <!-- MENU INICIAL -->
+        <div id="menu-screen" class="menu-screen active">
+            <h1>Lição de Casa: Lógica de Programação</h1>
+            <p style="text-align: center; margin-top: 10px;">
+                Teste seus conhecimentos com as 10 questões do nosso exercício!
+            </p>
+
+            <div class="rule-box">
+                <strong>📝 Instruções da Prova:</strong>
+                <ul>
+                    <li>São 10 questões de múltipla escolha.</li>
+                    <li>Você receberá nota de 0 a 10 no final.</li>
+                    <li>Veja o gabarito comentado ao acertar ou errar!</li>
+                </ul>
+            </div>
+
+            <button class="btn" onclick="startQuiz()">✏️ Iniciar Exercício</button>
+        </div>
+
+        <!-- TELA DO QUIZ -->
+        <div id="quiz-screen" class="quiz-screen">
+            <div class="header-status">
+                <span id="question-count">Questão 1 de 10</span>
+                <span id="score-count">Acertos: 0</span>
+            </div>
+
+            <div id="question-text" class="question-text">
+                Carregando pergunta...
+            </div>
+
+            <div id="options-container" class="options-container">
+                <!-- As opções serão inseridas via JavaScript -->
+            </div>
+
+            <div id="feedback-box" class="feedback-box"></div>
+
+            <button id="next-btn" class="btn" style="display: none; margin-top: 15px;" onclick="nextQuestion()">Próxima Questão ➔</button>
+        </div>
+
+        <!-- TELA DE RESULTADOS (BOLETIM) -->
+        <div id="result-screen" class="result-screen">
+            <h1>Boletim Escolar</h1>
+
+            <div class="grade-stamp">
+                <span class="score-label">Nota</span>
+                <span id="final-grade" class="score-num">0</span>
+            </div>
+
+            <div class="result-details">
+                <p id="result-message">Mensagem de desempenho...</p>
+                <p style="margin-top: 10px;">
+                    Você acertou <strong id="correct-count">0</strong> de <strong>10</strong> questões (<span id="percentage">0%</span>).
+                </p>
+            </div>
+
+            <button class="btn" onclick="restartQuiz()">🔄 Tentar Novamente</button>
+        </div>
+
+    </div>
+
+    <script>
+        // BANCO DE DADOS COM AS 10 PERGUNTAS E GABARITO FORNECIDO
+        const questions = [
+            {
+                question: "1. O que é um algoritmo?",
+                options: [
+                    "Um programa pronto para usar",
+                    "Uma sequência passo a passo para resolver um problema",
+                    "Um tipo de computador",
+                    "Uma linguagem de programação"
+                ],
+                correct: 1, // B
+                explanation: "Exato! Um algoritmo é como uma receita de bolo: um passo a passo para resolver um problema."
+            },
+            {
+                question: "2. Qual a diferença entre variável e constante?",
+                options: [
+                    "A variável muda de valor; a constante não muda",
+                    "A constante muda de valor; a variável não muda",
+                    "São a mesma coisa",
+                    "A variável é só para números; a constante só para textos"
+                ],
+                correct: 0, // A
+                explanation: "Muito bem! Variáveis variam (mudam) de valor, enquanto constantes mantêm o mesmo valor fixo."
+            },
+            {
+                question: "3. Qual destes NÃO é um tipo de dado?",
+                options: [
+                    "Número inteiro",
+                    "Texto",
+                    "Comida",
+                    "Booleano"
+                ],
+                correct: 2, // C
+                explanation: "Certinho! 'Comida' não é um tipo de dado em linguagens de programação."
+            },
+            {
+                question: "4. Em programação, \"saída\" significa:",
+                options: [
+                    "Dados que o usuário digita",
+                    "Informações que o programa mostra ao usuário",
+                    "Desligar o computador",
+                    "Apagar um arquivo"
+                ],
+                correct: 1, // B
+                explanation: "Correto! A 'saída' (ou output) é o resultado que o programa exibe na tela para o usuário."
+            },
+            {
+                question: "5. Qual comando representa uma estrutura de decisão?",
+                options: [
+                    "for",
+                    "if",
+                    "print",
+                    "return"
+                ],
+                correct: 1, // B
+                explanation: "Boa! O 'if' (SE) testa uma condição para decidir qual caminho o programa deve seguir."
+            },
+            {
+                question: "6. Para que serve uma estrutura de repetição?",
+                options: [
+                    "Para parar o programa",
+                    "Para repetir comandos sem precisar reescrevê-los",
+                    "Para apagar o código",
+                    "Para criar uma variável"
+                ],
+                correct: 1, // B
+                explanation: "Isso mesmo! Estruturas de repetição (laços) executam um bloco de código várias vezes."
+            },
+            {
+                question: "7. O que é um erro de sintaxe?",
+                options: [
+                    "Erro de digitação que desrespeita as regras da linguagem",
+                    "O programa funciona mas dá resultado errado",
+                    "O computador quebrou",
+                    "A internet caiu"
+                ],
+                correct: 0, // A
+                explanation: "Exatamente! É como cometer um erro gramatical ou escrever uma palavra errada no código."
+            },
+            {
+                question: "8. Qual é a vantagem de usar funções?",
+                options: [
+                    "Deixa o programa mais lento",
+                    "Reutilizar código e organizar melhor",
+                    "Usa mais memória",
+                    "Não serve para nada"
+                ],
+                correct: 1, // B
+                explanation: "Perfeito! Funções ajudam a evitar repetição de código e deixam tudo bem organizado."
+            },
+            {
+                question: "9. Qual operador significa \"E\" lógico?",
+                options: [
+                    "+",
+                    "and",
+                    "=",
+                    ">"
+                ],
+                correct: 1, // B
+                explanation: "Isso! O operador 'and' exige que duas ou mais condições sejam verdadeiras ao mesmo tempo."
+            },
+            {
+                question: "10. Por que comentamos o código?",
+                options: [
+                    "Para deixar ele maior",
+                    "Porque é obrigatório",
+                    "Para explicar o que ele faz, facilitando o entendimento",
+                    "Para que o programa rode mais rápido"
+                ],
+                correct: 2, // C
+                explanation: "Show! Comentários explicam a lógica para outros programadores (e para você no futuro)!"
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        // Elementos do DOM
+        const menuScreen = document.getElementById("menu-screen");
+        const quizScreen = document.getElementById("quiz-screen");
+        const resultScreen = document.getElementById("result-screen");
+        const questionText = document.getElementById("question-text");
+        const optionsContainer = document.getElementById("options-container");
+        const feedbackBox = document.getElementById("feedback-box");
+        const nextBtn = document.getElementById("next-btn");
+        const questionCount = document.getElementById("question-count");
+        const scoreCount = document.getElementById("score-count");
+
+        function startQuiz() {
+            menuScreen.classList.remove("active");
+            resultScreen.classList.remove("active");
+            quizScreen.classList.add("active");
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreCount.textContent = `Acertos: ${score}`;
+            showQuestion();
+        }
+
+        function showQuestion() {
+            answered = false;
+            feedbackBox.style.display = "none";
+            feedbackBox.className = "feedback-box";
+            nextBtn.style.display = "none";
+
+            const q = questions[currentQuestionIndex];
+            questionCount.textContent = `Questão ${currentQuestionIndex + 1} de ${questions.length}`;
+            questionText.textContent = q.question;
+
+            optionsContainer.innerHTML = "";
+
+            const prefix = ["A", "B", "C", "D"];
+
+            q.options.forEach((option, index) => {
+                const btn = document.createElement("button");
+                btn.className = "option-btn";
+                btn.innerHTML = `<strong>${prefix[index]})</strong> ${option}`;
+                btn.onclick = () => selectOption(index);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function selectOption(selectedIndex) {
+            if (answered) return;
+            answered = true;
+
+            const q = questions[currentQuestionIndex];
+            const buttons = optionsContainer.children;
+
+            if (selectedIndex === q.correct) {
+                score++;
+                scoreCount.textContent = `Acertos: ${score}`;
+                buttons[selectedIndex].classList.add("correct");
+                
+                feedbackBox.className = "feedback-box correct";
+                feedbackBox.innerHTML = `✨ <strong>Resposta Correta!</strong><br>${q.explanation}`;
+            } else {
+                buttons[selectedIndex].classList.add("incorrect");
+                buttons[q.correct].classList.add("correct"); // Mostra qual era a certa
+                
+                feedbackBox.className = "feedback-box incorrect";
+                feedbackBox.innerHTML = `❌ <strong>Ops, resposta incorreta!</strong><br>${q.explanation}`;
+            }
+
+            // Desabilita todos os botões após a resposta
+            for (let btn of buttons) {
+                btn.disabled = true;
+            }
+
+            nextBtn.style.display = "block";
+            if (currentQuestionIndex === questions.length - 1) {
+                nextBtn.textContent = "Ver Boletim Final 🎓";
+            } else {
+                nextBtn.textContent = "Próxima Questão ➔";
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            quizScreen.classList.remove("active");
+            resultScreen.classList.add("active");
+
+            const percentage = (score / questions.length) * 100;
+            document.getElementById("final-grade").textContent = score;
+            document.getElementById("correct-count").textContent = score;
+            document.getElementById("percentage").textContent = `${percentage}%`;
+
+            const messageEl = document.getElementById("result-message");
+
+            if (score === 10) {
+                messageEl.textContent = "🌟 Parabéns! Nota 10! Você é um mestre na Lógica de Programação!";
+            } else if (score >= 7) {
+                messageEl.textContent = "👏 Muito bem! Você passou com ótima nota! Continue assim.";
+            } else if (score >= 5) {
+                messageEl.textContent = "👍 Aprovado! Mas vale a pena dar uma revisada na matéria.";
+            } else {
+                messageEl.textContent = "📚 Precisa estudar mais um pouquinho. Que tal tentar novamente?";
+            }
+        }
+
+        function restartQuiz() {
+            startQuiz();
+        }
+    </script>
+</body>
+</html>
